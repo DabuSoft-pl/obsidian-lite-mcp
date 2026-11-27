@@ -1,0 +1,18 @@
+[project]
+name = "vault-mcp"
+version = "0.1.0"
+description = "Tiny read-first MCP server for Obsidian vaults: no Obsidian app, no dependencies, token-lean"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+vault-mcp = "vault_mcp:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["vault_mcp"]
