@@ -13,7 +13,7 @@ import time
 import unicodedata
 from urllib.parse import unquote
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 WIKI_RE = re.compile(r"!?\[\[([^\]|#]*)[^\]]*\]\]")
 MD_LINK_RE = re.compile(r"\]\((?:<([^>]+?\.md)>|([^)\s]+?\.md))(?:#[^)]*)?\)")
@@ -317,10 +317,12 @@ def context(notes, cwd):
 
 TOOLS = [
     {"name": "search",
-     "description": "Search Obsidian vault notes; filters optional, ANDed.",
+     "description": "Search Obsidian vault notes; all filters optional and ANDed. Returns up to "
+                    f"{MAX_RESULTS} paths with size (~N tok) and up to 3 matching lines each, ranked by matches, "
+                    "then most recently changed.",
      "inputSchema": {"type": "object", "properties": {
          "query": {"type": "string", "description": "case-insensitive regex on text and path"},
-         "tag": {"type": "string"},
+         "tag": {"type": "string", "description": "tag from frontmatter or #inline, with or without #"},
          "property": {"type": "string", "description": "'key' or 'key=value substring'"},
          "links": {"enum": ["broken", "orphans"], "description": "notes with unresolved links / no backlinks"}}},
      "annotations": {"readOnlyHint": True}},
@@ -328,7 +330,8 @@ TOOLS = [
      "description": "Read a note by [[link]] name, alias or path; 'Note#Heading' reads one section. Includes links and "
                     "backlinks. For big notes call with outline=true first (headings + ~tokens), then read one section.",
      "inputSchema": {"type": "object", "properties": {
-         "name": {"type": "string"}, "outline": {"type": "boolean"},
+         "name": {"type": "string", "description": "note name, alias, [[link]] or vault path; 'Note#Heading' for a section"},
+         "outline": {"type": "boolean", "description": "return only headings with ~tokens per section"},
          "full": {"type": "boolean", "description": f"return text over {MAX_READ_TOKENS} tokens anyway"}},
          "required": ["name"]},
      "annotations": {"readOnlyHint": True}},
@@ -338,8 +341,9 @@ REMEMBER = {
     "description": "Save a new note (decision, finding, lesson) to the vault's inbox folder for the user to review. "
                    "Cannot edit existing notes. Link related notes with [[name]] in text.",
     "inputSchema": {"type": "object", "properties": {
-        "title": {"type": "string"}, "text": {"type": "string"},
-        "tags": {"type": "array", "items": {"type": "string"}}}, "required": ["title", "text"]},
+        "title": {"type": "string", "description": "note file name, without .md"},
+        "text": {"type": "string", "description": "Markdown body"},
+        "tags": {"type": "array", "items": {"type": "string"}, "description": "extra tags; 'claude' is always added"}}, "required": ["title", "text"]},
     "annotations": {"readOnlyHint": False, "destructiveHint": False}}
 
 

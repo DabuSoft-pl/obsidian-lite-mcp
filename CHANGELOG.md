@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- Tool descriptions: what `search` returns, and a description for every parameter (`tag`, `name`, `outline`, `remember` fields).
+
 ## 1.0.0
 
 First public release.
