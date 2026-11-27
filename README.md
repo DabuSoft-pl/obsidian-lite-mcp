@@ -49,7 +49,7 @@ repo:
 
 `vault-mcp context /path/to/vault "$PWD"` then prints a short index for whichever repo you are in:
 the note's first line, ADRs (notes tagged `adr`) grouped by `status`, open `- [ ]` task counts and the three most
-recently changed notes, all from the project note's folder. It is usually 150-250 tokens; details come from `read`.
+recently changed notes, all from the project note's folder. In a real session it measured about 450 tokens; details come from `read`.
 
 In Claude Code, add it as a `SessionStart` hook in `~/.claude/settings.json`:
 
@@ -78,7 +78,7 @@ Outside a known repo it prints nothing.
 
 - The vault is rescanned on every call: instant for hundreds of notes, slow past roughly ten thousand.
 - Frontmatter parsing covers scalars, `[a, b]` and `- item` lists; nested YAML is skipped.
-- Token counts are estimates (characters / 3).
+- Token counts are estimates (characters / 2, measured on Polish notes; English text is cheaper).
 - Markdown links `[text](note.md)` and `.base` files are not indexed.
 
 ## Tests

@@ -66,7 +66,8 @@ def load(vault):
 
 def tok(text):
     """Rough token estimate shown to the agent so it can decide whether a fetch is worth it."""
-    return f"~{len(text) // 3 + 1} tok"  # shortcut: chars/3 suits Polish prose; use a real tokenizer only if estimates mislead
+    # shortcut: chars/2 measured on Polish notes (~1.8 chars/token, 2026-11-27); English runs ~4, so this overestimates there
+    return f"~{len(text) // 2 + 1} tok"
 
 
 def headings(text):
@@ -268,7 +269,7 @@ def handle(msg, vault, write_dir=None):
 
 def main():
     if sys.argv[1:2] == ["context"]:  # server.py context VAULT CWD -> brief for a SessionStart hook
-        if len(sys.argv) == 4 and os.path.isdir(sys.argv[2]):
+        if len(sys.argv) == 4 and os.path.isdir(sys.argv[2]) and os.environ.get("VAULT_CONTEXT") != "off":
             print(context(load(sys.argv[2]), sys.argv[3]))
         return
     args, write_dir = sys.argv[1:], None

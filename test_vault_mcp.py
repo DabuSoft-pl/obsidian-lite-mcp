@@ -45,9 +45,9 @@ class VaultTest(unittest.TestCase):
         self.assertIsNone(server.resolve("Brak", self.notes))
 
     def test_search_filters(self):
-        self.assertEqual(server.search(self.notes, tag="adr"), "A.md (~36 tok)\nProj/Dec/ADR-1.md (~16 tok)")
-        self.assertEqual(server.search(self.notes, property="status=przyj"), "A.md (~36 tok)\nProj/Dec/ADR-1.md (~16 tok)")
-        self.assertEqual(server.search(self.notes, property="projekt=B"), "A.md (~36 tok)")
+        self.assertEqual(server.search(self.notes, tag="adr"), "A.md (~54 tok)\nProj/Dec/ADR-1.md (~23 tok)")
+        self.assertEqual(server.search(self.notes, property="status=przyj"), "A.md (~54 tok)\nProj/Dec/ADR-1.md (~23 tok)")
+        self.assertEqual(server.search(self.notes, property="projekt=B"), "A.md (~54 tok)")
         self.assertIn("Sub/C.md", server.search(self.notes, query="linkuje"))
         self.assertEqual(server.search(self.notes, query="zzz"), "Brak wyników.")
 
@@ -67,7 +67,7 @@ class VaultTest(unittest.TestCase):
 
     def test_outline(self):
         self.assertEqual(server.read(self.notes, "P", outline_only=True),
-                         "# Proj/P.md (~39 tok)\nP (~6 tok)\n  Etap (~17 tok)\n  Koniec (~4 tok)")
+                         "# Proj/P.md (~59 tok)\nP (~9 tok)\n  Etap (~25 tok)\n  Koniec (~6 tok)")
 
     def test_context(self):
         out = server.context(self.notes, "/home/u/code/other/src")
