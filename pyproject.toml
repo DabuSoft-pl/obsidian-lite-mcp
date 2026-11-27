@@ -1,7 +1,7 @@
 [project]
 name = "obsidian-lite-mcp"
 dynamic = ["version"]
-description = "Tiny read-first MCP server for Obsidian vaults: no Obsidian app, no dependencies, token-lean"
+description = "Small MCP server that reads an Obsidian vault from disk: Obsidian-accurate links and backlinks, sections, search. No app, no dependencies."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
