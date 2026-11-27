@@ -80,6 +80,8 @@ class VaultTest(unittest.TestCase):
         self.assertEqual(server.context(self.notes, "/home/u/unknown"), "")
 
     def test_search_ranks_by_hits(self):
+        os.utime(os.path.join(self.dir.name, "A.md"), (0, 10**9))  # explicit: Windows mtime can tie with C's
+        self.notes = server.load(self.dir.name)
         self.assertTrue(server.search(self.notes, query="link").startswith("Sub/C.md"))  # 1 hit each: C has newer mtime
         out = server.search(self.notes, query="a").splitlines()
         self.assertEqual(out[0].split(" ")[0], "A.md")
