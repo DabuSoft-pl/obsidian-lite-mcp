@@ -61,11 +61,13 @@ def as_list(value):
 
 
 def links_in(text, rel):
-    """Link targets in text: [[wikilinks]] by name, and [x](note.md) links as vault-relative paths."""
-    out = [nfc(l.strip()) for l in WIKI_RE.findall(text) if l.strip()]
+    """Link targets in text: [[wikilinks]] by name, and [x](note.md) links as vault-relative paths. Code is not linked."""
+    text = CODE_RE.sub("", text)
+    # rstrip: inside tables the alias pipe is escaped, [[Note\|alias]]
+    out = [nfc(l.strip().rstrip("\\").strip()) for l in WIKI_RE.findall(text) if l.strip().rstrip("\\").strip()]
     for a, b in MD_LINK_RE.findall(text):
         target = nfc(unquote(a or b))
-        if "://" not in target:
+        if not re.match(r"[A-Za-z][\w+.-]*:", target):  # skip https:, mailto:, obsidian: ...
             out.append(posixpath.normpath(posixpath.join(posixpath.dirname(rel), target)))
     return out
 

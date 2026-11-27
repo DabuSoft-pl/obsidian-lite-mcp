@@ -167,6 +167,11 @@ class FeaturesTest(unittest.TestCase):
         self.assertIn("Links: B.md, Dir/Sub Dir/Y.md\n", out)
         self.assertEqual(notes.backlinks("Dir/Sub Dir/Y.md"), ["Dir/X.md"])
 
+    def test_links_ignore_code_and_handle_table_pipes(self):
+        self.write("B.md", "b")
+        self.write("A.md", "| x | [[B\\|bee]] |\n`[[Fake]]`\n```\n[[Fake2]]\n```\n[m](mailto:x@y.md)")
+        self.assertEqual(server.load(self.v)["A.md"]["links"], ["B"])
+
     def test_obsidian_excluded_files(self):
         self.write(".obsidian/app.json", json.dumps({"userIgnoreFilters": ["Archive/", "/^Tmp-\\d+/", "/[/"]}))
         for rel in ["Archive/Old.md", "Tmp-1.md", "Tmp-x.md", "Keep.md"]:
