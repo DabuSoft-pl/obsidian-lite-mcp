@@ -5,6 +5,7 @@
 First public release.
 
 - `search`: regex, tag and frontmatter property filters, ranked by matches then recency, `~N tok` per hit.
+- `search` `links: broken | orphans`: unresolved links (attachments excluded) and notes without backlinks.
 - `read`: wikilinks, aliases and Markdown links resolved like Obsidian; outgoing links and backlinks; `Note#Heading`
   sections; `outline` mode; notes over 8000 tokens return their outline unless `full: true`.
 - `remember` (opt-in with `--write-dir`): creates new notes only, never overwrites.

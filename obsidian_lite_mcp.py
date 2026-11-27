@@ -180,7 +180,12 @@ def resolve(name, notes):
     return min(hits, key=len) if hits else None
 
 
-def search(notes, query=None, tag=None, property=None):
+ATTACHMENT_RE = re.compile(r"\.(?!md$)[A-Za-z0-9]{1,5}$", re.I)  # ![[pic.png]] etc. are not notes
+
+
+def search(notes, query=None, tag=None, property=None, links=None):
+    if links not in (None, "broken", "orphans"):
+        raise ValueError("links must be 'broken' or 'orphans'")
     rx = re.compile(query, re.I) if query else None
     if property:
         pkey, _, pval = property.partition("=")
@@ -195,12 +200,20 @@ def search(notes, query=None, tag=None, property=None):
                 continue
             if pval and not any(pval in v.lower() for v in as_list(vals[0])):
                 continue
+        if links == "orphans" and notes.backlinks(path):
+            continue
         lines = []
         if rx:
             lines = [l.strip()[:160] for l in n["text"].splitlines() if rx.search(l)]
             if not lines and not rx.search(path):
                 continue
-        hits.append((len(lines), n["mtime"], f"{path} (~{tok(n['text'])} tok)" + "".join(f"\n    {l}" for l in lines[:3])))
+        rank = len(lines)
+        if links == "broken":
+            bad = [l for l in n["links"] if not ATTACHMENT_RE.search(l) and not resolve(l, notes)]
+            if not bad:
+                continue
+            lines = ["broken: " + ", ".join(f"[[{l}]]" for l in dict.fromkeys(bad))] + lines
+        hits.append((rank, n["mtime"], f"{path} (~{tok(n['text'])} tok)" + "".join(f"\n    {l}" for l in lines[:3])))
     hits.sort(key=lambda h: (-h[0], -h[1]))  # most matching lines first, then most recently changed
     out = [h[2] for h in hits[:MAX_RESULTS]]
     if len(hits) > MAX_RESULTS:
@@ -308,7 +321,8 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {
          "query": {"type": "string", "description": "case-insensitive regex on text and path"},
          "tag": {"type": "string"},
-         "property": {"type": "string", "description": "'key' or 'key=value substring'"}}},
+         "property": {"type": "string", "description": "'key' or 'key=value substring'"},
+         "links": {"enum": ["broken", "orphans"], "description": "notes with unresolved links / no backlinks"}}},
      "annotations": {"readOnlyHint": True}},
     {"name": "read",
      "description": "Read a note by [[link]] name, alias or path; 'Note#Heading' reads one section. Includes links and "
@@ -333,7 +347,7 @@ def call_tool(name, args, vault, write_dir):
     if name == "remember" and write_dir:
         return remember(vault, write_dir, args.get("title"), args.get("text", ""), args.get("tags"))
     if name == "search":
-        return search(load(vault), args.get("query"), args.get("tag"), args.get("property"))
+        return search(load(vault), args.get("query"), args.get("tag"), args.get("property"), args.get("links"))
     if name == "read":
         return read(load(vault), str(args.get("name", "")), bool(args.get("outline")), bool(args.get("full")))
     raise ValueError(f"Unknown tool: {name}")

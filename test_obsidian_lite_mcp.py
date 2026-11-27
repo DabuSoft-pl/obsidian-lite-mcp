@@ -84,6 +84,18 @@ class VaultTest(unittest.TestCase):
         out = server.search(self.notes, query="a").splitlines()
         self.assertEqual(out[0].split(" ")[0], "A.md")
 
+    def test_broken_links_and_orphans(self):
+        self.assertEqual(server.search(self.notes, links="broken"), "A.md (~54 tok)\n    broken: [[Brak]]")
+        orphans = {l.split(" ")[0] for l in server.search(self.notes, links="orphans").splitlines()}
+        self.assertEqual(orphans, {"Proj/P.md", "Proj/Dec/ADR-1.md", "Proj/Plan.md", "Zw/Żółw.md"})
+        self.assertEqual(server.search(self.notes, tag="adr", links="orphans"), "Proj/Dec/ADR-1.md (~23 tok)")
+        self.assertRaises(ValueError, server.search, self.notes, links="dead")
+        with open(os.path.join(self.dir.name, "B.md"), "a", encoding="utf-8") as f:
+            f.write("![[pic.png]] [[Nowa]]\n")
+        os.utime(os.path.join(self.dir.name, "B.md"), (0, 10**9))
+        out = server.search(server.load(self.dir.name), links="broken")
+        self.assertTrue(out.endswith("B.md (~36 tok)\n    broken: [[Nowa]]"))  # attachments are not reported
+
     def test_remember(self):
         os.mkdir(os.path.join(self.dir.name, "Inbox"))
         self.assertEqual(server.remember(self.dir.name, "Inbox", "Lekcja", "Treść [[A]]", ["#x"]), "Saved: Inbox/Lekcja.md")

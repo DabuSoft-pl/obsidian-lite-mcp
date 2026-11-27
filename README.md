@@ -17,7 +17,7 @@ A tiny MCP server that lets AI agents read an Obsidian vault straight from disk.
 
 | Tool | What it does |
 |---|---|
-| `search` | Regex over text and paths, plus `tag` and frontmatter `property` filters (`key` or `key=value`). Ranked by matches, then recency. |
+| `search` | Regex over text and paths, plus `tag` and frontmatter `property` filters (`key` or `key=value`). Ranked by matches, then recency. `links: broken` lists notes with unresolved links (attachments excluded), `links: orphans` notes nothing links to. |
 | `read` | A note by `[[link]]` name, alias or path, with outgoing links and backlinks. `Note#Heading` returns one section; `outline: true` returns headings with the size of each section. Notes over 8000 tokens return their outline unless `full: true`. |
 | `remember` | Only with `--write-dir`: creates a new note in that folder, tagged `claude`. Never edits or overwrites. |
 
@@ -122,6 +122,10 @@ tasks, find by topic). Both setups 5/5; input tokens grep 184k and 123k, obsidia
 **No measurable difference**: on a small vault with plain links, grep is just as good.
 
 The `context` hook costs about 450 input tokens per session (A/B with `VAULT_CONTEXT=off`).
+
+Search stays regex-only on purpose. A plain-words mode (any order, BM25-ranked) was tried on four topic questions
+over the personal vault, three runs per setup: both 3/3 correct, regex 6 turns and about 73k input tokens every run,
+words 6-8 turns and 77k-116k. Models already write good regexes (`PHP 8\.[45]`, `a|b`), so it was dropped.
 
 ## Limits
 
