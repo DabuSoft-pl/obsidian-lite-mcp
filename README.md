@@ -2,6 +2,9 @@
 
 <!-- mcp-name: io.github.DabuSoft-pl/obsidian-lite-mcp -->
 
+[![PyPI](https://img.shields.io/pypi/v/obsidian-lite-mcp)](https://pypi.org/project/obsidian-lite-mcp/)
+[![obsidian-lite-mcp MCP server](https://glama.ai/mcp/servers/DabuSoft-pl/obsidian-lite-mcp/badges/score.svg)](https://glama.ai/mcp/servers/DabuSoft-pl/obsidian-lite-mcp)
+
 A tiny MCP server that lets AI agents read an Obsidian vault straight from disk.
 
 - **No Obsidian app running**, no plugins, no REST API: the vault is just a folder of `.md` files.
