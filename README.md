@@ -15,11 +15,15 @@ A tiny MCP server that lets AI agents read an Obsidian vault straight from disk.
 | Tool | What it does |
 |---|---|
 | `search` | Regex over text and paths, plus `tag` and frontmatter `property` filters (`key` or `key=value`). Ranked by matches, then recency. |
-| `read` | A note by `[[link]]` name or path, with outgoing links and backlinks. `Note#Heading` returns one section; `outline: true` returns headings with the size of each section. |
+| `read` | A note by `[[link]]` name, alias or path, with outgoing links and backlinks. `Note#Heading` returns one section; `outline: true` returns headings with the size of each section. Notes over 8000 tokens return their outline unless `full: true`. |
 | `remember` | Only with `--write-dir`: creates a new note in that folder, tagged `claude`. Never edits or overwrites. |
 
-Wikilinks resolve the way Obsidian does: exact path first, then note name, shortest path on ties.
-Tags come from frontmatter and `#inline` tags outside code.
+Links resolve the way Obsidian does: exact path first, then note name or `aliases`, shortest path on ties.
+Markdown links (`[text](Folder/Note.md)`) count too. Tags come from frontmatter and `#inline` tags outside code.
+Folders listed in Obsidian's *Excluded files* setting are skipped, as are hidden folders like `.obsidian` and `.trash`.
+
+Fast on big vaults: files are re-read only when they change, and on a 5000-note vault a `read` with backlinks
+takes about 0.05 s.
 
 ## Install
 
@@ -95,10 +99,10 @@ Outside a known repo it prints nothing. `VAULT_CONTEXT=off` silences it for one 
 
 ## Limits
 
-- The vault is rescanned on every call: instant for hundreds of notes, slow past roughly ten thousand.
+- Every call checks file timestamps (about 0.04 s for 5000 notes); the first call reads everything (about 1 s).
 - Frontmatter parsing covers scalars, `[a, b]` and `- item` lists; nested YAML is skipped.
 - Token counts are estimates (characters / 2, measured on Polish notes; English text is cheaper).
-- Markdown links `[text](note.md)` and `.base` files are not indexed.
+- `.base` and `.canvas` files are not indexed.
 
 ## Development
 

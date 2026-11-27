@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
+import unicodedata
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -20,6 +22,7 @@ class VaultTest(unittest.TestCase):
             "Proj/P.md": "---\nrepo:\n  - my-repo\n  - other\n---\n# P\nOpis projektu\n## Etap\nkrok [[B]]\n```\n# komentarz bash\n```\ndalej\n## Koniec\nx\n",
             "Proj/Dec/ADR-1.md": "---\ntags: [adr]\nstatus: przyjęta\n---\nDecyzja\n",
             "Proj/Plan.md": "- [ ] zrobić X\n- [x] zrobione\n",
+            "Zw/Żółw.md": "pancerz\n",
         }
         for rel, text in files.items():
             p = os.path.join(self.dir.name, rel)
@@ -34,7 +37,7 @@ class VaultTest(unittest.TestCase):
         self.dir.cleanup()
 
     def test_index_skips_dot_dirs_and_parses_frontmatter(self):
-        self.assertEqual(sorted(self.notes), ["A.md", "B.md", "Proj/Dec/ADR-1.md", "Proj/P.md", "Proj/Plan.md", "Sub/C.md"])
+        self.assertEqual(sorted(self.notes), ["A.md", "B.md", "Proj/Dec/ADR-1.md", "Proj/P.md", "Proj/Plan.md", "Sub/C.md", "Zw/Żółw.md"])
         self.assertEqual(self.notes["A.md"]["props"]["status"], "przyjęta")
         self.assertEqual(self.notes["A.md"]["tags"], {"adr", "inline"})
         self.assertEqual(self.notes["B.md"]["tags"], set())
@@ -108,12 +111,107 @@ class VaultTest(unittest.TestCase):
             {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "read", "arguments": {"name": "C"}}},
             {"jsonrpc": "2.0", "id": 3, "method": "nope"},
         ]
+        reqs_text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in reqs)
+        reqs_text += "{not json\n" + '[1, 2]\n' + json.dumps({"jsonrpc": "2.0", "id": 4, "method": "tools/call",
+                                                            "params": {"name": "read", "arguments": {"name": 5}}}) + "\n"
+        reqs_text += json.dumps({"jsonrpc": "2.0", "id": 5, "method": "tools/call",
+                                 "params": {"name": "read", "arguments": {"name": "Żółw"}}}, ensure_ascii=False) + "\n"
         p = subprocess.run([sys.executable, server.__file__, self.dir.name], capture_output=True, text=True,
-                           input="".join(json.dumps(r) + "\n" for r in reqs), timeout=10)
+                           encoding="utf-8", input=reqs_text, timeout=10)
         replies = [json.loads(l) for l in p.stdout.splitlines()]
-        self.assertEqual([r["id"] for r in replies], [1, 2, 3])
+        self.assertEqual([r.get("id") for r in replies], [1, 2, 3, None, None, 4, 5])  # server survived bad lines
+        self.assertEqual(replies[0]["result"]["serverInfo"]["version"], server.__version__)
         self.assertIn("Backlinks: A.md", replies[1]["result"]["content"][0]["text"])
         self.assertEqual(replies[2]["error"]["code"], -32601)
+        self.assertEqual([replies[3]["error"]["code"], replies[4]["error"]["code"]], [-32700, -32600])
+        self.assertTrue(replies[5]["result"]["isError"])
+        self.assertIn("pancerz", replies[6]["result"]["content"][0]["text"])  # UTF-8 both ways
+
+
+class FeaturesTest(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.v = self.dir.name
+
+    def tearDown(self):
+        self.dir.cleanup()
+        server._CACHE.pop(os.path.abspath(self.v), None)
+
+    def write(self, rel, text):
+        p = os.path.join(self.v, rel)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(text)
+        return p
+
+    def test_nfd_file_names_match_nfc_links(self):
+        self.write(unicodedata.normalize("NFD", "Żółw.md"), "pancerz")
+        self.write("A.md", "[[Żółw]]")
+        notes = server.load(self.v)
+        self.assertEqual(server.resolve("Żółw", notes), "Żółw.md")
+        self.assertEqual(notes.backlinks("Żółw.md"), ["A.md"])
+
+    def test_aliases(self):
+        self.write("Long name.md", "---\naliases: [Short, Inny]\n---\nx")
+        self.write("B.md", "see [[short]]")
+        notes = server.load(self.v)
+        self.assertEqual(server.resolve("Short", notes), "Long name.md")
+        self.assertEqual(notes.backlinks("Long name.md"), ["B.md"])
+
+    def test_markdown_links(self):
+        self.write("Dir/X.md", "[up](../B.md) [enc](<Sub Dir/Y.md>) [pct](Sub%20Dir/Y.md#h) [web](https://e.com/a.md)")
+        self.write("B.md", "b")
+        self.write("Dir/Sub Dir/Y.md", "y")
+        notes = server.load(self.v)
+        out = server.read(notes, "X")
+        self.assertIn("Links: B.md, Dir/Sub Dir/Y.md\n", out)
+        self.assertEqual(notes.backlinks("Dir/Sub Dir/Y.md"), ["Dir/X.md"])
+
+    def test_obsidian_excluded_files(self):
+        self.write(".obsidian/app.json", json.dumps({"userIgnoreFilters": ["Archive/", "/^Tmp-\\d+/", "/[/"]}))
+        for rel in ["Archive/Old.md", "Tmp-1.md", "Tmp-x.md", "Keep.md"]:
+            self.write(rel, "x")
+        self.assertEqual(sorted(server.load(self.v)), ["Keep.md", "Tmp-x.md"])
+
+    def test_big_note_returns_outline_unless_full(self):
+        body = "# Big\n" + "## Part\n" + "słowo " * (server.MAX_READ_TOKENS // 2 + 10)
+        self.write("Big.md", body)
+        notes = server.load(self.v)
+        out = server.read(notes, "Big")
+        self.assertIn("Part (~", out)
+        self.assertIn("over the 8000 limit", out)
+        self.assertLess(len(out), 500)
+        self.assertIn("słowo słowo", server.read(notes, "Big", full=True))
+
+    def test_cache_rereads_only_changed_files(self):
+        p = self.write("A.md", "one")
+        self.write("B.md", "two")
+        first = server.load(self.v)
+        second = server.load(self.v)
+        self.assertIs(first["B.md"], second["B.md"])
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("changed, longer")
+        os.utime(p, (0, 10))
+        third = server.load(self.v)
+        self.assertEqual(third["A.md"]["text"], "changed, longer")
+        self.assertIs(third["B.md"], first["B.md"])
+        os.remove(p)
+        self.assertEqual(sorted(server.load(self.v)), ["B.md"])
+
+    def test_backlinks_scale(self):
+        n = 3000
+        for i in range(n):
+            self.write(f"d{i % 30}/n{i}.md", " ".join(f"[[n{(i * 7 + k) % n}]]" for k in range(10)))
+        start = time.time()
+        notes = server.load(self.v)
+        out = server.read(notes, "n42")
+        self.assertIn("Backlinks: ", out)
+        self.assertLess(time.time() - start, 10)  # was ~40 s at this size before the name index
+
+    def test_versions_match(self):
+        with open(os.path.join(os.path.dirname(server.__file__), "server.json"), encoding="utf-8") as f:
+            meta = json.load(f)
+        self.assertEqual({meta["version"], meta["packages"][0]["version"]}, {server.__version__})
 
 
 if __name__ == "__main__":

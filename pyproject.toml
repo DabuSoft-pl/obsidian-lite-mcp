@@ -1,6 +1,6 @@
 [project]
 name = "obsidian-lite-mcp"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Tiny read-first MCP server for Obsidian vaults: no Obsidian app, no dependencies, token-lean"
 readme = "README.md"
 license = "MIT"
@@ -21,3 +21,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 py-modules = ["obsidian_lite_mcp"]
+
+[tool.setuptools.dynamic]
+version = { attr = "obsidian_lite_mcp.__version__" }

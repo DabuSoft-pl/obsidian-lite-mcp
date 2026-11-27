@@ -6,13 +6,13 @@
     "url": "https://github.com/DabuSoft-pl/obsidian-lite-mcp",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "1.0.0",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "obsidian-lite-mcp",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
