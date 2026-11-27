@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DabuSoft-pl/obsidian-lite-mcp",
+  "description": "Read an Obsidian vault from disk: search, sections, backlinks. No app, no deps, token-lean.",
+  "repository": {
+    "url": "https://github.com/DabuSoft-pl/obsidian-lite-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "obsidian-lite-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "valueHint": "vault_path",
+          "description": "Path to the Obsidian vault folder",
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}

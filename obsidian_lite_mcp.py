@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Read-only MCP server (stdio) for an Obsidian vault. No Obsidian app, no dependencies.
 
-Usage: vault_mcp.py /path/to/vault [--write-dir Inbox]  MCP server on stdio; --write-dir enables `remember`
-       vault_mcp.py context /path/to/vault CWD           project brief for the repo in CWD (notes with `repo:` property)
+Usage: obsidian-lite-mcp /path/to/vault [--write-dir Inbox]  MCP server on stdio; --write-dir enables `remember`
+       obsidian-lite-mcp context /path/to/vault CWD           project brief for the repo in CWD (notes with `repo:` property)
 """
 import json
 import os
@@ -115,28 +115,28 @@ def search(notes, query=None, tag=None, property=None):
     hits.sort(key=lambda h: (-h[0], -h[1]))  # most matching lines first, then most recently changed
     out = [h[2] for h in hits[:MAX_RESULTS]]
     if len(hits) > MAX_RESULTS:
-        out.append(f"... {len(hits) - MAX_RESULTS} więcej, zawęź zapytanie")
-    return "\n".join(out) or "Brak wyników."
+        out.append(f"... {len(hits) - MAX_RESULTS} more, narrow the query")
+    return "\n".join(out) or "No results."
 
 
 def remember(vault, write_dir, title, text, tags=None):
     """Create a new note in write_dir. Never edits or overwrites an existing note."""
     title = (title or "").strip()
     if not title or len(title) > 120 or title.startswith(".") or re.search(r'[\\/:*?"<>|#^\[\]\n]', title):
-        raise ValueError("Zły tytuł: bez / \\ : * ? \" < > | # ^ [ ], nie od kropki, do 120 znaków")
+        raise ValueError("Bad title: no / \\ : * ? \" < > | # ^ [ ], no leading dot, max 120 chars")
     vault = os.path.realpath(vault)
     target_dir = os.path.realpath(os.path.join(vault, write_dir))
     path = os.path.join(target_dir, title + ".md")
     if os.path.dirname(os.path.realpath(path)) != target_dir:
-        raise ValueError("Ścieżka poza folderem zapisu")
+        raise ValueError("Path outside the write folder")
     tags = ["claude", *(t.lstrip("#") for t in (tags or []) if t and t.lstrip("#") != "claude")]
     front = "---\ntags:\n" + "".join(f"  - {t}\n" for t in tags) + f"{DATE_KEY}: {time.strftime('%Y-%m-%d')}\n---\n"
     try:
         with open(path, "x", encoding="utf-8") as f:
             f.write(front + text.strip() + "\n")
     except FileExistsError:
-        raise ValueError(f"Notatka już istnieje: {os.path.relpath(path, vault)}; wybierz inny tytuł")
-    return f"Zapisano: {os.path.relpath(path, vault)}"
+        raise ValueError(f"Note already exists: {os.path.relpath(path, vault)}; pick another title")
+    return f"Saved: {os.path.relpath(path, vault)}"
 
 
 def section(text, heading):
@@ -148,7 +148,7 @@ def section(text, heading):
         elif start is not None and lvl <= level:
             return "\n".join(lines[start:i])
     if start is None:
-        raise ValueError(f"Nie ma sekcji: {heading}")
+        raise ValueError(f"No such section: {heading}")
     return "\n".join(lines[start:])
 
 
@@ -157,14 +157,14 @@ def outline(text):
     lines, hs = text.splitlines(), list(headings(text))
     out = [f"{'  ' * (lvl - 1)}{title} ({tok(chr(10).join(lines[i:hs[k + 1][0] if k + 1 < len(hs) else None]))})"
            for k, (i, lvl, title) in enumerate(hs)]
-    return "\n".join(out) or "(brak nagłówków)"
+    return "\n".join(out) or "(no headings)"
 
 
 def read(notes, name, outline_only=False):
     name, _, heading = name.partition("#")
     path = resolve(name, notes)
     if not path:
-        raise ValueError(f"Nie ma notatki: {name}")
+        raise ValueError(f"No such note: {name}")
     n = notes[path]
     if outline_only:
         return f"# {path} ({tok(n['text'])})\n{outline(n['text'])}"
@@ -172,10 +172,10 @@ def read(notes, name, outline_only=False):
     outgoing = []
     for l in dict.fromkeys(l.strip() for l in LINK_RE.findall(text) if l.strip()):
         target = resolve(l, notes)
-        outgoing.append(target or f"{l} (brak notatki)")
+        outgoing.append(target or f"{l} (missing)")
     backlinks = [p for p, o in notes.items() if p != path and any(resolve(l, notes) == path for l in o["links"])]
-    return (f"# {path}\n\n{text}\n\n---\nLinki wychodzące: " + (", ".join(outgoing) or "brak")
-            + "\nBacklinki: " + (", ".join(backlinks) or "brak"))
+    return (f"# {path}\n\n{text}\n\n---\nLinks: " + (", ".join(outgoing) or "none")
+            + "\nBacklinks: " + (", ".join(backlinks) or "none"))
 
 
 def as_list(value):
@@ -204,12 +204,12 @@ def context(notes, cwd):
         if "adr" in notes[p]["tags"]:
             adrs.setdefault(notes[p]["props"].get("status", "?"), []).append(name(p))
     tasks = [(name(p), len(re.findall(r"^\s*- \[ \] ", notes[p]["text"], re.M))) for p in in_scope]
-    out = [f"Vault (MCP `vault`): repo `{repo}` → [[{name(project)}]]. {about[:200]}"]
+    out = [f"Obsidian vault: repo `{repo}` → [[{name(project)}]]. {about[:200]}"]
     out += [f"ADR {status}: " + "; ".join(sorted(ns)) for status, ns in sorted(adrs.items())]
     if any(n for _, n in tasks):
-        out.append("Otwarte zadania: " + ", ".join(f"[[{t}]] {n}" for t, n in tasks if n))
+        out.append("Open tasks: " + ", ".join(f"[[{t}]] {n}" for t, n in tasks if n))
     recent = sorted(in_scope, key=lambda p: notes[p]["mtime"], reverse=True)[:3]
-    out.append("Ostatnio zmieniane: " + ", ".join(
+    out.append("Recently changed: " + ", ".join(
         f"[[{name(p)}]] {time.strftime('%Y-%m-%d', time.localtime(notes[p]['mtime']))}" for p in recent))
     return "\n".join(out)
 
@@ -243,7 +243,7 @@ def handle(msg, vault, write_dir=None):
     method, params = msg.get("method"), msg.get("params") or {}
     if method == "initialize":
         return {"protocolVersion": params.get("protocolVersion", "2025-06-18"),
-                "capabilities": {"tools": {}}, "serverInfo": {"name": "vault", "version": "0.1.0"}}
+                "capabilities": {"tools": {}}, "serverInfo": {"name": "obsidian-lite-mcp", "version": "0.1.0"}}
     if method == "ping":
         return {}
     if method == "tools/list":
@@ -260,7 +260,7 @@ def handle(msg, vault, write_dir=None):
             elif params.get("name") == "read":
                 text = read(notes, args.get("name", ""), bool(args.get("outline")))
             else:
-                raise ValueError(f"Nieznane narzędzie: {params.get('name')}")
+                raise ValueError(f"Unknown tool: {params.get('name')}")
             return {"content": [{"type": "text", "text": text}]}
         except (ValueError, re.error, OSError) as e:
             return {"content": [{"type": "text", "text": str(e)}], "isError": True}

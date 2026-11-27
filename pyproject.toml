@@ -1,18 +1,23 @@
 [project]
-name = "vault-mcp"
+name = "obsidian-lite-mcp"
 version = "0.1.0"
 description = "Tiny read-first MCP server for Obsidian vaults: no Obsidian app, no dependencies, token-lean"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = []
+keywords = ["mcp", "obsidian", "claude", "model-context-protocol", "markdown"]
+
+[project.urls]
+Homepage = "https://github.com/DabuSoft-pl/obsidian-lite-mcp"
+Issues = "https://github.com/DabuSoft-pl/obsidian-lite-mcp/issues"
 
 [project.scripts]
-vault-mcp = "vault_mcp:main"
+obsidian-lite-mcp = "obsidian_lite_mcp:main"
 
 [build-system]
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["vault_mcp"]
+py-modules = ["obsidian_lite_mcp"]

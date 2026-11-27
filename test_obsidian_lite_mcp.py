@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
-import vault_mcp as server
+import obsidian_lite_mcp as server
 
 
 class VaultTest(unittest.TestCase):
@@ -49,12 +49,12 @@ class VaultTest(unittest.TestCase):
         self.assertEqual(server.search(self.notes, property="status=przyj"), "A.md (~54 tok)\nProj/Dec/ADR-1.md (~23 tok)")
         self.assertEqual(server.search(self.notes, property="projekt=B"), "A.md (~54 tok)")
         self.assertIn("Sub/C.md", server.search(self.notes, query="linkuje"))
-        self.assertEqual(server.search(self.notes, query="zzz"), "Brak wyników.")
+        self.assertEqual(server.search(self.notes, query="zzz"), "No results.")
 
     def test_read_links_and_backlinks(self):
         out = server.read(self.notes, "A")
-        self.assertIn("Linki wychodzące: B.md, Sub/C.md, Brak (brak notatki)", out)
-        self.assertIn("Backlinki: Sub/C.md", out)
+        self.assertIn("Links: B.md, Sub/C.md, Brak (missing)", out)
+        self.assertIn("Backlinks: Sub/C.md", out)
         self.assertRaises(ValueError, server.read, self.notes, "nic")
 
     def test_read_section(self):
@@ -62,7 +62,7 @@ class VaultTest(unittest.TestCase):
         self.assertIn("# komentarz bash", out)
         self.assertIn("dalej", out)
         self.assertNotIn("Koniec", out)
-        self.assertIn("Linki wychodzące: B.md", out)
+        self.assertIn("Links: B.md", out)
         self.assertRaises(ValueError, server.read, self.notes, "P#nie ma")
 
     def test_outline(self):
@@ -71,9 +71,9 @@ class VaultTest(unittest.TestCase):
 
     def test_context(self):
         out = server.context(self.notes, "/home/u/code/other/src")
-        self.assertEqual(out, "Vault (MCP `vault`): repo `other` → [[P]]. Opis projektu\n"
-                              "ADR przyjęta: ADR-1\nOtwarte zadania: [[Plan]] 1\n"
-                              "Ostatnio zmieniane: [[P]] 1970-01-04, [[ADR-1]] 1970-01-03, [[Plan]] 1970-01-02")
+        self.assertEqual(out, "Obsidian vault: repo `other` → [[P]]. Opis projektu\n"
+                              "ADR przyjęta: ADR-1\nOpen tasks: [[Plan]] 1\n"
+                              "Recently changed: [[P]] 1970-01-04, [[ADR-1]] 1970-01-03, [[Plan]] 1970-01-02")
         self.assertEqual(server.context(self.notes, "/home/u/unknown"), "")
 
     def test_search_ranks_by_hits(self):
@@ -83,7 +83,7 @@ class VaultTest(unittest.TestCase):
 
     def test_remember(self):
         os.mkdir(os.path.join(self.dir.name, "Inbox"))
-        self.assertEqual(server.remember(self.dir.name, "Inbox", "Lekcja", "Treść [[A]]", ["#x"]), "Zapisano: Inbox/Lekcja.md")
+        self.assertEqual(server.remember(self.dir.name, "Inbox", "Lekcja", "Treść [[A]]", ["#x"]), "Saved: Inbox/Lekcja.md")
         with open(os.path.join(self.dir.name, "Inbox/Lekcja.md"), encoding="utf-8") as f:
             text = f.read()
         self.assertTrue(text.startswith("---\ntags:\n  - claude\n  - x\ncreated: "))
@@ -112,7 +112,7 @@ class VaultTest(unittest.TestCase):
                            input="".join(json.dumps(r) + "\n" for r in reqs), timeout=10)
         replies = [json.loads(l) for l in p.stdout.splitlines()]
         self.assertEqual([r["id"] for r in replies], [1, 2, 3])
-        self.assertIn("Backlinki: A.md", replies[1]["result"]["content"][0]["text"])
+        self.assertIn("Backlinks: A.md", replies[1]["result"]["content"][0]["text"])
         self.assertEqual(replies[2]["error"]["code"], -32601)
 
 
