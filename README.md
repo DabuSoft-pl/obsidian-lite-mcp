@@ -72,7 +72,7 @@ In Claude Code, add it as a `SessionStart` hook in `~/.claude/settings.json`:
 }
 ```
 
-Outside a known repo it prints nothing.
+Outside a known repo it prints nothing. `VAULT_CONTEXT=off` silences it for one run (handy for A/B token measurements).
 
 ## Limits
 
